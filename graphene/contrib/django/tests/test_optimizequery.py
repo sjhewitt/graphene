@@ -1,12 +1,11 @@
-from graphql.core.utils.get_field_def import get_field_def
 import pytest
+from graphql.core.utils.get_field_def import get_field_def
 
 import graphene
 from graphene.contrib.django import DjangoObjectType
 
-from ..tests.models import Reporter
 from ..debug.schema import DebugSchema
-from ..fields import DjangoField
+from ..tests.models import Reporter
 
 # from examples.starwars_django.models import Character
 

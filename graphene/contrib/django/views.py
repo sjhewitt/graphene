@@ -3,8 +3,8 @@ from django.http.response import HttpResponseBadRequest
 from graphql.core import Source, parse, validate
 from graphql.core.execution import ExecutionResult
 from graphql.core.utils.get_operation_ast import get_operation_ast
-
-from graphql_django_view import GraphQLView as BaseGraphQLView, HttpError
+from graphql_django_view import GraphQLView as BaseGraphQLView
+from graphql_django_view import HttpError
 
 
 class GraphQLView(BaseGraphQLView):
