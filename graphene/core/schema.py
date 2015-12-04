@@ -110,15 +110,12 @@ class Schema(object):
     def types(self):
         return self._types_names
 
-    def execute(self, request='', root=None, vars=None,
-                operation_name=None, **kwargs):
+    def execute(self, request='', root=None, *args, **kwargs):
         root = root or object()
         return self.executor.execute(
             self.schema,
             request,
-            root=root,
-            args=vars,
-            operation_name=operation_name,
+            root,
             **kwargs
         )
 
