@@ -1,16 +1,18 @@
 
 import six
 
-from graphql import GraphQLObjectType
+from graphql import GraphQLObjectType, GraphQLInterfaceType
 
 from ..utils.copy_fields import copy_fields
 from ..utils.get_fields import get_fields
 from ..utils.is_base_type import is_base_type
 from .definitions import GrapheneGraphQLType
 from .field import Field
-from .interface import (GrapheneInterfaceType, Interface, InterfaceTypeMeta,
-                        attrs_without_fields)
 from .options import Options
+
+
+class GrapheneInterfaceType(GrapheneGraphQLType, GraphQLInterfaceType):
+    pass
 
 
 class GrapheneObjectType(GrapheneGraphQLType, GraphQLObjectType):
@@ -26,22 +28,6 @@ class GrapheneObjectType(GrapheneGraphQLType, GraphQLObjectType):
             if isinstance(interface, GrapheneInterfaceType):
                 interface.graphene_type.implements(self.graphene_type)
 
-    @property
-    def is_type_of(self):
-        return self._is_type_of or self.default_is_type_of
-
-    @is_type_of.setter
-    def is_type_of(self, is_type_of):
-        self._is_type_of = is_type_of
-
-    def default_is_type_of(self, interface, context, info):
-        from ..utils.get_graphql_type import get_graphql_type
-        try:
-            graphql_type = get_graphql_type(type(interface))
-            return graphql_type.name == self.name
-        except:
-            return False
-
 
 def get_interfaces(interfaces):
     from ..utils.get_graphql_type import get_graphql_type
@@ -51,19 +37,78 @@ def get_interfaces(interfaces):
         yield graphql_type
 
 
+def is_objecttype(bases):
+    for base in bases:
+        if issubclass(base, ObjectType):
+            return True
+    return False
+
+
+def attrs_without_fields(attrs, fields):
+    return {k: v for k, v in attrs.items() if k not in fields}
+
 # We inherit from InterfaceTypeMeta instead of type for being able
 # to have ObjectTypes extending Interfaces using Python syntax, like:
 # class MyObjectType(ObjectType, MyInterface)
-class ObjectTypeMeta(InterfaceTypeMeta):
+class ObjectTypeMeta(type):
 
     def __new__(cls, name, bases, attrs):
         super_new = type.__new__
 
-        # Also ensure initialization is only performed for subclasses of Model
-        # (excluding Model class itself).
+        # Also ensure initialization is only performed for subclasses of
+        # ObjectType, Interfaces
         if not is_base_type(bases, ObjectTypeMeta):
-            return super_new(cls, name, bases, attrs)
+            return type.__new__(cls, name, bases, attrs)
 
+        if not is_objecttype(bases):
+            return cls._create_interface(cls, name, bases, attrs)
+
+        return cls._create_objecttype(cls, name, bases, attrs)
+
+    def get_interfaces(cls, bases):
+        return (b for b in bases if issubclass(b, Interface))
+
+    def is_object_type(cls):
+        return issubclass(cls, ObjectType)
+
+    @staticmethod
+    def _get_interface_options(meta):
+        return Options(
+            meta,
+            name=None,
+            description=None,
+            graphql_type=None,
+            abstract=False
+        )
+
+    @staticmethod
+    def _create_interface(cls, name, bases, attrs):
+        options = cls._get_interface_options(attrs.pop('Meta', None))
+
+        fields = get_fields(Interface, attrs, bases)
+        attrs = attrs_without_fields(attrs, fields)
+        cls = type.__new__(cls, name, bases, dict(attrs, _meta=options))
+
+        if not options.graphql_type:
+            fields = copy_fields(Field, fields, parent=cls)
+            options.graphql_type = GrapheneInterfaceType(
+                graphene_type=cls,
+                name=options.name or cls.__name__,
+                resolve_type=cls.resolve_type,
+                description=options.description or cls.__doc__,
+                fields=fields,
+            )
+        else:
+            assert not fields, "Can't mount Fields in an Interface with a defined graphql_type"
+            fields = copy_fields(options.graphql_type.get_fields(), parent=cls)
+
+        for name, field in fields.items():
+            setattr(cls, field.attname or name, field)
+
+        return cls
+
+    @staticmethod
+    def _create_objecttype(cls, name, bases, attrs):
         options = Options(
             attrs.pop('Meta', None),
             name=None,
@@ -76,7 +121,7 @@ class ObjectTypeMeta(InterfaceTypeMeta):
         interfaces = tuple(options.interfaces)
         fields = get_fields(ObjectType, attrs, bases, interfaces)
         attrs = attrs_without_fields(attrs, fields)
-        cls = super_new(cls, name, bases, dict(attrs, _meta=options))
+        cls = type.__new__(cls, name, bases, dict(attrs, _meta=options))
 
         if not options.graphql_type:
             fields = copy_fields(Field, fields, parent=cls)
@@ -86,6 +131,7 @@ class ObjectTypeMeta(InterfaceTypeMeta):
                 name=options.name or cls.__name__,
                 description=options.description or cls.__doc__,
                 fields=fields,
+                is_type_of=cls.is_type_of,
                 interfaces=tuple(get_interfaces(interfaces + base_interfaces))
             )
         else:
@@ -97,21 +143,19 @@ class ObjectTypeMeta(InterfaceTypeMeta):
 
         return cls
 
-    def get_interfaces(cls, bases):
-        return (b for b in bases if issubclass(b, Interface))
-
-    def is_object_type(cls):
-        return issubclass(cls, ObjectType)
-
 
 class ObjectType(six.with_metaclass(ObjectTypeMeta)):
 
     def __init__(self, *args, **kwargs):
         # GraphQL ObjectType acting as container
         args_len = len(args)
-        fields = self._meta.graphql_type.get_fields().values()
-        for f in fields:
-            setattr(self, getattr(f, 'attname', f.name), None)
+        _fields = self._meta.graphql_type._fields
+        if callable(_fields):
+            _fields = _fields()
+
+        fields = _fields.items()
+        for name, f in fields:
+            setattr(self, getattr(f, 'attname', name), None)
 
         if args_len > len(fields):
             # Daft, but matches old exception sans the err msg.
@@ -119,18 +163,18 @@ class ObjectType(six.with_metaclass(ObjectTypeMeta)):
         fields_iter = iter(fields)
 
         if not kwargs:
-            for val, field in zip(args, fields_iter):
-                attname = getattr(field, 'attname', field.name)
+            for val, (name, field) in zip(args, fields_iter):
+                attname = getattr(field, 'attname', name)
                 setattr(self, attname, val)
         else:
-            for val, field in zip(args, fields_iter):
-                attname = getattr(field, 'attname', field.name)
+            for val, (name, field) in zip(args, fields_iter):
+                attname = getattr(field, 'attname', name)
                 setattr(self, attname, val)
                 kwargs.pop(attname, None)
 
-        for field in fields_iter:
+        for name, field in fields_iter:
             try:
-                attname = getattr(field, 'attname', field.name)
+                attname = getattr(field, 'attname', name)
                 val = kwargs.pop(attname)
                 setattr(self, attname, val)
             except KeyError:
@@ -147,3 +191,30 @@ class ObjectType(six.with_metaclass(ObjectTypeMeta)):
                 raise TypeError(
                     "'%s' is an invalid keyword argument for this function" %
                     list(kwargs)[0])
+
+    @classmethod
+    def is_type_of(cls, interface, context, info):
+        from ..utils.get_graphql_type import get_graphql_type
+        try:
+            graphql_type = get_graphql_type(type(interface))
+            return graphql_type.name == cls._meta.graphql_type.name
+        except:
+            return False
+
+
+class Interface(six.with_metaclass(ObjectTypeMeta)):
+    resolve_type = None
+
+    def __init__(self, *args, **kwargs):
+        from .objecttype import ObjectType
+        if not isinstance(self, ObjectType):
+            raise Exception("An interface cannot be intitialized")
+        super(Interface, self).__init__(*args, **kwargs)
+
+    @classmethod
+    def implements(cls, object_type):
+        '''
+        We use this function for customizing when a ObjectType have this class as Interface
+        For example, if we want to check that the ObjectType have some required things
+        in it like Node.get_node
+        '''

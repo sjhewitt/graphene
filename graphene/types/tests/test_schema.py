@@ -11,12 +11,17 @@ class Character(Interface):
     friends = List(lambda: Character)
     best_friend = Field(lambda: Character)
 
+    def resolve_friends(self, *args):
+        return [Human(name='Peter')]
+
+    def resolve_best_friend(self, *args):
+        return Human(name='Best')
+
 
 class Pet(ObjectType):
     type = String()
 
 
-# @implements(Character)
 class Human(ObjectType):
 
     class Meta:
@@ -26,12 +31,6 @@ class Human(ObjectType):
 
     def resolve_pet(self, *args):
         return Pet(type='Dog')
-
-    def resolve_friends(self, *args):
-        return [Human(name='Peter')]
-
-    def resolve_best_friend(self, *args):
-        return Human(name='Best')
 
 
 class RootQuery(ObjectType):
