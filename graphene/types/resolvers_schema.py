@@ -11,7 +11,7 @@ from graphql.type.directives import (GraphQLDirective, GraphQLIncludeDirective,
 from graphql.type.introspection import IntrospectionSchema
 
 from .schema import Schema
-from .objecttype import GrapheneObjectType
+from ..generators.definitions import GrapheneObjectType
 from .field import Field
 from ..utils.get_graphql_type import get_graphql_type
 
