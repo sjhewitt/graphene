@@ -79,19 +79,6 @@ class ResolversSchema(Schema):
             types=types,
             executor=executor)
 
-    def _build_type_map(self, _types):
-        types = [
-            self.get_query_type(),
-            self.get_mutation_type(),
-            self.get_subscription_type(),
-            IntrospectionSchema
-        ]
-        if _types:
-            types += _types
-
-        type_map = reduce(self._type_map_reducer, types, OrderedDict())
-        return type_map
-
     def type_with_resolvers(self, type):
         return type_with_resolvers(type, self.resolvers.get(type, {}))
 
