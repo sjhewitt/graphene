@@ -3,18 +3,19 @@ from functools import partial
 import six
 
 from graphene import Field, Interface
-from graphene.types.objecttype import ObjectType, ObjectTypeMeta, attrs_without_fields, GrapheneObjectType, get_interfaces
+from graphene.types.objecttype import ObjectType, ObjectTypeMeta, attrs_without_fields, get_interfaces
 from graphene.relay import Node
 from graphene.relay.node import NodeMeta
 from .converter import convert_django_field_with_choices
 from graphene.types.options import Options
-from .utils import get_model_fields, is_valid_django_model
+from .utils import get_model_fields, is_valid_django_model, DJANGO_FILTER_INSTALLED
 from .registry import Registry, get_global_registry
 from graphene.utils.is_base_type import is_base_type
 from graphene.utils.copy_fields import copy_fields
 from graphene.utils.get_graphql_type import get_graphql_type
 from graphene.utils.get_fields import get_fields
 from graphene.utils.as_field import as_field
+from graphene.generators import generate_objecttype
 
 
 class DjangoObjectTypeMeta(ObjectTypeMeta):
@@ -39,7 +40,8 @@ class DjangoObjectTypeMeta(ObjectTypeMeta):
 
         return fields
 
-    def __new__(cls, name, bases, attrs):
+    @staticmethod
+    def _create_objecttype(cls, name, bases, attrs):
         # super_new = super(DjangoObjectTypeMeta, cls).__new__
         super_new = type.__new__
 
@@ -48,8 +50,7 @@ class DjangoObjectTypeMeta(ObjectTypeMeta):
         if not is_base_type(bases, DjangoObjectTypeMeta):
             return super_new(cls, name, bases, attrs)
 
-        options = Options(
-            attrs.pop('Meta', None),
+        defaults = dict(
             name=None,
             description=None,
             model=None,
@@ -57,6 +58,18 @@ class DjangoObjectTypeMeta(ObjectTypeMeta):
             exclude=(),
             interfaces=(),
             registry=None
+        )
+        if DJANGO_FILTER_INSTALLED:
+            # In case Django filter is available, then
+            # we allow more attributes in Meta
+            defaults.update(
+                filter_fields=(),
+                filter_order_by=(),
+            )
+
+        options = Options(
+            attrs.pop('Meta', None),
+            **defaults
         )
         if not options.registry:
             options.registry = get_global_registry()
@@ -69,13 +82,10 @@ class DjangoObjectTypeMeta(ObjectTypeMeta):
         cls = super_new(cls, name, bases, dict(attrs, _meta=options))
 
         base_interfaces = tuple(b for b in bases if issubclass(b, Interface))
-        options.graphql_type = GrapheneObjectType(
-            graphene_type=cls,
-            name=options.name or cls.__name__,
-            description=options.description or cls.__doc__,
-            fields=partial(cls._construct_fields, fields, options),
-            interfaces=tuple(get_interfaces(interfaces + base_interfaces))
-        )
+        options.get_fields = partial(cls._construct_fields, fields, options)
+        options.get_interfaces = tuple(get_interfaces(interfaces + base_interfaces))
+
+        options.graphql_type = generate_objecttype(cls)
 
         if issubclass(cls, DjangoObjectType):
             options.registry.register(cls)
@@ -84,10 +94,10 @@ class DjangoObjectTypeMeta(ObjectTypeMeta):
 
 
 class DjangoObjectType(six.with_metaclass(DjangoObjectTypeMeta, ObjectType)):
-    pass
+    is_type_of = None
 
 
-class DjangoNodeMeta(NodeMeta, DjangoObjectTypeMeta):
+class DjangoNodeMeta(DjangoObjectTypeMeta, NodeMeta):
 
     @staticmethod
     def _get_interface_options(meta):
@@ -99,8 +109,9 @@ class DjangoNodeMeta(NodeMeta, DjangoObjectTypeMeta):
             registry=False
         )
 
-    def __new__(cls, name, bases, attrs):
-        cls = super(DjangoNodeMeta, cls).__new__(cls, name, bases, attrs)
+    @staticmethod
+    def _create_interface(cls, name, bases, attrs):
+        cls = super(DjangoNodeMeta, cls)._create_interface(cls, name, bases, attrs)
         if not cls._meta.registry:
             cls._meta.registry = get_global_registry()
         assert isinstance(cls._meta.registry, Registry), 'The attribute registry in {}.Meta needs to be an instance of Registry.'.format(name)
