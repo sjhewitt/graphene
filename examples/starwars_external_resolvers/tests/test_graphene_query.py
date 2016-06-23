@@ -1,6 +1,6 @@
 
 from ..data import setup
-from ..schema import schema, Query, Character
+from ..schema_resolvers import schema, Query, Character
 
 setup()
 

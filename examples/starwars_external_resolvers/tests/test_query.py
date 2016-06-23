@@ -1,6 +1,6 @@
 
 from ..data import setup
-from ..schema import schema
+from ..schema_resolvers import schema
 
 setup()
 
