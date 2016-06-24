@@ -7,173 +7,74 @@ setup()
 dsl = DSL(schema)
 
 def test_hero_name_query():
-    # query = '''
-    #     query HeroNameQuery {
-    #       hero {
-    #         name
-    #       }
-    #     }
-    # '''
-    query = dsl.query(
-        dsl(Query.hero).get(
-            Character.name
-        )
+    query = '''
+hero {
+  name
+}
+    '''.strip()
+    query_dsl = dsl(Query.hero).get(
+        Character.name
     )
-    expected = {
-        'hero': {
-            'name': 'R2-D2'
-        }
-    }
-    result = dsl.execute(query)
-    assert result == expected
+    assert query == str(query_dsl)
+
 
 def test_hero_name_and_friends_query():
-    # query = '''
-    #     query {
-    #       hero {
-    #         id
-    #         name
-    #         friends {
-    #           name
-    #         }
-    #       }
-    #     }
-    # '''
-    query = dsl.query(
-        dsl(Query.hero).get(
-            Character.id,
+    query = '''
+hero {
+  id
+  name
+  friends {
+    name
+  }
+}
+    '''.strip()
+    query_dsl = dsl(Query.hero).get(
+        Character.id,
+        Character.name,
+        dsl(Character.friends).get(
             Character.name,
-            dsl(Character.friends).get(
-                Character.name,
-            )
         )
     )
-    expected = {
-        'hero': {
-            'id': '2001',
-            'name': 'R2-D2',
-            'friends': [
-                {'name': 'Luke Skywalker'},
-                {'name': 'Han Solo'},
-                {'name': 'Leia Organa'},
-            ]
-        }
-    }
-    # result = schema.execute(query)
-    result = dsl.execute(query)
-    assert result == expected
+    assert query == str(query_dsl)
 
 
 def test_nested_query():
-    # query = '''
-    #     query NestedQuery {
-    #       hero {
-    #         name
-    #         friends {
-    #           name
-    #           appearsIn
-    #           friends {
-    #             name
-    #           }
-    #         }
-    #       }
-    #     }
-    # '''
-    query = dsl.query(
-        dsl(Query.hero).get(
+    query = '''
+hero {
+  name
+  friends {
+    name
+    appearsIn
+    friends {
+      name
+    }
+  }
+}
+    '''.strip()
+    query_dsl = dsl(Query.hero).get(
+        Character.name,
+        dsl(Character.friends).get(
             Character.name,
+            Character.appears_in,
             dsl(Character.friends).get(
-                Character.name,
-                Character.appears_in,
-                dsl(Character.friends).get(
-                    Character.name
-                )
+                Character.name
             )
         )
     )
-    expected = {
-        'hero': {
-            'name': 'R2-D2',
-            'friends': [
-                {
-                    'name': 'Luke Skywalker',
-                    'appearsIn': ['NEWHOPE', 'EMPIRE', 'JEDI'],
-                    'friends': [
-                        {
-                            'name': 'Han Solo',
-                        },
-                        {
-                            'name': 'Leia Organa',
-                        },
-                        {
-                            'name': 'C-3PO',
-                        },
-                        {
-                            'name': 'R2-D2',
-                        },
-                    ]
-                },
-                {
-                    'name': 'Han Solo',
-                    'appearsIn': ['NEWHOPE', 'EMPIRE', 'JEDI'],
-                    'friends': [
-                        {
-                            'name': 'Luke Skywalker',
-                        },
-                        {
-                            'name': 'Leia Organa',
-                        },
-                        {
-                            'name': 'R2-D2',
-                        },
-                    ]
-                },
-                {
-                    'name': 'Leia Organa',
-                    'appearsIn': ['NEWHOPE', 'EMPIRE', 'JEDI'],
-                    'friends': [
-                        {
-                            'name': 'Luke Skywalker',
-                        },
-                        {
-                            'name': 'Han Solo',
-                        },
-                        {
-                            'name': 'C-3PO',
-                        },
-                        {
-                            'name': 'R2-D2',
-                        },
-                    ]
-                },
-            ]
-        }
-    }
-    # result = schema.execute(query)
-    result = dsl.execute(query)
-    assert result == expected
+    assert query == str(query_dsl)
 
 
 def test_fetch_luke_query():
-    # query = '''
-    #     query FetchLukeQuery {
-    #       human(id: "1000") {
-    #         name
-    #       }
-    #     }
-    # '''
-    query = dsl.query(
-        dsl(Query.human, id="1000").get(
-            Human.name,
-        )
+    query = '''
+human(id: "1000") {
+  name
+}
+    '''.strip()
+    query_dsl = dsl(Query.human, id="1000").get(
+      Human.name,
     )
-    expected = {
-        'human': {
-            'name': 'Luke Skywalker',
-        }
-    }
-    result = dsl.execute(query)
-    assert result == expected
+
+    assert query == str(query_dsl)
 
 
 # def test_fetch_some_id_query():
