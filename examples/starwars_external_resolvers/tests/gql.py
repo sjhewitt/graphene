@@ -64,7 +64,7 @@ class FieldQuery(object):
         return print_ast(self.ast_field)
 
 
-class DSL(object):
+class GQL(object):
     def __init__(self, schema):
         self.schema = schema
 
@@ -99,12 +99,3 @@ class DSL(object):
     def __call__(self, field, **args):
         '''for nested queries'''
         return FieldQuery(field).args(**args)
-
-
-                        # arguments=[ast.Argument(
-                        #     name=ast.Name(loc=Loc(start=9, end=11, source=source),
-                        #                   value='id'),
-                        #     value=ast.IntValue(
-                        #            loc=Loc(start=13, end=14, source=source),
-                        #            value='4'),
-                        #     loc=Loc(start=9, end=14, source=source))],

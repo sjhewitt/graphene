@@ -1,10 +1,10 @@
 from ..data import setup
 from ..schema_resolvers import schema, Query, Character, Human
-from .dsl import DSL
+from .gql import GQL
 
 setup()
 
-dsl = DSL(schema)
+gql = GQL(schema)
 
 def test_hero_name_query():
     query = '''
@@ -12,10 +12,10 @@ hero {
   name
 }
     '''.strip()
-    query_dsl = dsl(Query.hero).get(
+    query_gql = gql(Query.hero).get(
         Character.name
     )
-    assert query == str(query_dsl)
+    assert query == str(query_gql)
 
 
 def test_hero_name_and_friends_query():
@@ -28,14 +28,14 @@ hero {
   }
 }
     '''.strip()
-    query_dsl = dsl(Query.hero).get(
+    query_gql = gql(Query.hero).get(
         Character.id,
         Character.name,
-        dsl(Character.friends).get(
+        gql(Character.friends).get(
             Character.name,
         )
     )
-    assert query == str(query_dsl)
+    assert query == str(query_gql)
 
 
 def test_nested_query():
@@ -51,17 +51,17 @@ hero {
   }
 }
     '''.strip()
-    query_dsl = dsl(Query.hero).get(
+    query_gql = gql(Query.hero).get(
         Character.name,
-        dsl(Character.friends).get(
+        gql(Character.friends).get(
             Character.name,
             Character.appears_in,
-            dsl(Character.friends).get(
+            gql(Character.friends).get(
                 Character.name
             )
         )
     )
-    assert query == str(query_dsl)
+    assert query == str(query_gql)
 
 
 def test_fetch_luke_query():
@@ -70,11 +70,11 @@ human(id: "1000") {
   name
 }
     '''.strip()
-    query_dsl = dsl(Query.human, id="1000").get(
+    query_gql = gql(Query.human, id="1000").get(
       Human.name,
     )
 
-    assert query == str(query_dsl)
+    assert query == str(query_gql)
 
 
 # def test_fetch_some_id_query():

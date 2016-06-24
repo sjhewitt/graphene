@@ -1,21 +1,21 @@
 from ..data import setup
 from ..schema_resolvers import schema, Query, Character, Human
-from .dsl import DSL
+from .gql import GQL
 
 setup()
 
-dsl = DSL(schema)
+gql = GQL(schema)
 
 def test_hero_name_query():
     # query = '''
-    #     query HeroNameQuery {
+    #     query {
     #       hero {
     #         name
     #       }
     #     }
     # '''
-    query = dsl.query(
-        dsl(Query.hero).get(
+    query = gql.query(
+        gql(Query.hero).get(
             Character.name
         )
     )
@@ -24,7 +24,7 @@ def test_hero_name_query():
             'name': 'R2-D2'
         }
     }
-    result = dsl.execute(query)
+    result = gql.execute(query)
     assert result == expected
 
 def test_hero_name_and_friends_query():
@@ -39,11 +39,11 @@ def test_hero_name_and_friends_query():
     #       }
     #     }
     # '''
-    query = dsl.query(
-        dsl(Query.hero).get(
+    query = gql.query(
+        gql(Query.hero).get(
             Character.id,
             Character.name,
-            dsl(Character.friends).get(
+            gql(Character.friends).get(
                 Character.name,
             )
         )
@@ -60,13 +60,13 @@ def test_hero_name_and_friends_query():
         }
     }
     # result = schema.execute(query)
-    result = dsl.execute(query)
+    result = gql.execute(query)
     assert result == expected
 
 
 def test_nested_query():
     # query = '''
-    #     query NestedQuery {
+    #     query {
     #       hero {
     #         name
     #         friends {
@@ -79,13 +79,13 @@ def test_nested_query():
     #       }
     #     }
     # '''
-    query = dsl.query(
-        dsl(Query.hero).get(
+    query = gql.query(
+        gql(Query.hero).get(
             Character.name,
-            dsl(Character.friends).get(
+            gql(Character.friends).get(
                 Character.name,
                 Character.appears_in,
-                dsl(Character.friends).get(
+                gql(Character.friends).get(
                     Character.name
                 )
             )
@@ -150,7 +150,7 @@ def test_nested_query():
         }
     }
     # result = schema.execute(query)
-    result = dsl.execute(query)
+    result = gql.execute(query)
     assert result == expected
 
 
@@ -162,8 +162,8 @@ def test_fetch_luke_query():
     #       }
     #     }
     # '''
-    query = dsl.query(
-        dsl(Query.human, id="1000").get(
+    query = gql.query(
+        gql(Query.human, id="1000").get(
             Human.name,
         )
     )
@@ -172,7 +172,7 @@ def test_fetch_luke_query():
             'name': 'Luke Skywalker',
         }
     }
-    result = dsl.execute(query)
+    result = gql.execute(query)
     assert result == expected
 
 
