@@ -10,14 +10,7 @@ from graphql.language.source import Source
 
 def selections(*fields):
     for field in fields:
-        query = None
-        if isinstance(field, FieldQuery):
-            query = field
-        elif isinstance(field, GraphQLField):
-            query = FieldQuery(field)
-        assert query, 'Received incompatible query field: {}'.format(field)
-
-        yield query.ast
+        yield GQL.field(field).ast
 
 
 def get_value(value):
@@ -32,7 +25,7 @@ def get_value(value):
     return None
 
 
-class FieldQuery(object):
+class GQLField(object):
     def __init__(self, field):
         self.field = field
         self.ast_field = ast.Field(name=ast.Name(value=field.name), arguments=[])
@@ -76,8 +69,8 @@ class GQL(object):
     @staticmethod
     def field(field, **args):
         if isinstance(field, GraphQLField):
-            return FieldQuery(field).args(**args)
-        elif isinstance(field, FieldQuery):
+            return GQLField(field).args(**args)
+        elif isinstance(field, GQLField):
             return field
 
         raise Exception('Received incompatible query field: "{}".'.format(field))
