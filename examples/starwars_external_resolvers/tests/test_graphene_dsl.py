@@ -1,10 +1,8 @@
 from ..data import setup
 from ..schema_resolvers import schema, Query, Character, Human
-from .gql import GQL
+from .gql import gql
 
 setup()
-
-gql = GQL(schema)
 
 def test_hero_name_query():
     query = '''
@@ -12,7 +10,7 @@ hero {
   name
 }
     '''.strip()
-    query_gql = gql(Query.hero).get(
+    query_gql = gql.field(Query.hero).get(
         Character.name
     )
     assert query == str(query_gql)
@@ -28,10 +26,10 @@ hero {
   }
 }
     '''.strip()
-    query_gql = gql(Query.hero).get(
+    query_gql = gql.field(Query.hero).get(
         Character.id,
         Character.name,
-        gql(Character.friends).get(
+        gql.field(Character.friends).get(
             Character.name,
         )
     )
@@ -51,12 +49,12 @@ hero {
   }
 }
     '''.strip()
-    query_gql = gql(Query.hero).get(
+    query_gql = gql.field(Query.hero).get(
         Character.name,
-        gql(Character.friends).get(
+        gql.field(Character.friends).get(
             Character.name,
             Character.appears_in,
-            gql(Character.friends).get(
+            gql.field(Character.friends).get(
                 Character.name
             )
         )
@@ -70,7 +68,7 @@ human(id: "1000") {
   name
 }
     '''.strip()
-    query_gql = gql(Query.human, id="1000").get(
+    query_gql = gql.field(Query.human, id="1000").get(
       Human.name,
     )
 

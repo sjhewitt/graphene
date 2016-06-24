@@ -4,20 +4,20 @@ from graphql.validation import validate
 from graphql.language import ast
 from graphql.language.printer import print_ast
 from graphql.type import GraphQLField
-
+from graphql.language.parser import parse
+from graphql.language.source import Source
 
 
 def selections(*fields):
     for field in fields:
-        field_query = None
+        query = None
         if isinstance(field, FieldQuery):
-            field_query = field
+            query = field
         elif isinstance(field, GraphQLField):
-            field_query = FieldQuery(field)
+            query = FieldQuery(field)
+        assert query, 'Received incompatible query field: {}'.format(field)
 
-        assert field_query, 'Received incompatible field: {}'.format(field)
-
-        yield field_query.ast
+        yield query.ast
 
 
 def get_value(value):
@@ -65,10 +65,25 @@ class FieldQuery(object):
 
 
 class GQL(object):
-    def __init__(self, schema):
-        self.schema = schema
+    def __init__(self, request_string):
+        if isinstance(request_string, (str, unicode)):
+            source = Source(request_string, 'GraphQL request')
+            self.ast = parse(source)
+            assert not args
+        else:
+            raise Exception('Received incompatible request "{}".'.format(request_string))
 
-    def query(self, *fields):
+    @staticmethod
+    def field(field, **args):
+        if isinstance(field, GraphQLField):
+            return FieldQuery(field).args(**args)
+        elif isinstance(field, FieldQuery):
+            return field
+
+        raise Exception('Received incompatible query field: "{}".'.format(field))
+
+    @staticmethod
+    def query(*fields):
         return ast.Document(
             definitions=[ast.OperationDefinition(
                 operation='query',
@@ -78,8 +93,17 @@ class GQL(object):
             )]
         )
 
-    def var(self, name):
+    @staticmethod
+    def var(name):
         return ast.Variable(name=name)
+
+
+gql = GQL
+
+
+class Client(object):
+    def __init__(self, schema=None):
+        self.schema = schema
 
     def validate(self, document):
         validation_errors = validate(self.schema, document)
@@ -95,7 +119,3 @@ class GQL(object):
         if result.errors:
             raise result.errors[0]
         return result.data
-
-    def __call__(self, field, **args):
-        '''for nested queries'''
-        return FieldQuery(field).args(**args)

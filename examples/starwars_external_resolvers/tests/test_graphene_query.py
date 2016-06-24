@@ -1,10 +1,10 @@
 from ..data import setup
 from ..schema_resolvers import schema, Query, Character, Human
-from .gql import GQL
+from .gql import gql, Client
 
 setup()
 
-gql = GQL(schema)
+client = Client(schema)
 
 def test_hero_name_query():
     # query = '''
@@ -15,7 +15,7 @@ def test_hero_name_query():
     #     }
     # '''
     query = gql.query(
-        gql(Query.hero).get(
+        gql.field(Query.hero).get(
             Character.name
         )
     )
@@ -24,8 +24,9 @@ def test_hero_name_query():
             'name': 'R2-D2'
         }
     }
-    result = gql.execute(query)
+    result = client.execute(query)
     assert result == expected
+
 
 def test_hero_name_and_friends_query():
     # query = '''
@@ -40,10 +41,10 @@ def test_hero_name_and_friends_query():
     #     }
     # '''
     query = gql.query(
-        gql(Query.hero).get(
+        gql.field(Query.hero).get(
             Character.id,
             Character.name,
-            gql(Character.friends).get(
+            gql.field(Character.friends).get(
                 Character.name,
             )
         )
@@ -60,7 +61,7 @@ def test_hero_name_and_friends_query():
         }
     }
     # result = schema.execute(query)
-    result = gql.execute(query)
+    result = client.execute(query)
     assert result == expected
 
 
@@ -80,12 +81,12 @@ def test_nested_query():
     #     }
     # '''
     query = gql.query(
-        gql(Query.hero).get(
+        gql.field(Query.hero).get(
             Character.name,
-            gql(Character.friends).get(
+            gql.field(Character.friends).get(
                 Character.name,
                 Character.appears_in,
-                gql(Character.friends).get(
+                gql.field(Character.friends).get(
                     Character.name
                 )
             )
@@ -150,7 +151,7 @@ def test_nested_query():
         }
     }
     # result = schema.execute(query)
-    result = gql.execute(query)
+    result = client.execute(query)
     assert result == expected
 
 
@@ -163,7 +164,7 @@ def test_fetch_luke_query():
     #     }
     # '''
     query = gql.query(
-        gql(Query.human, id="1000").get(
+        gql.field(Query.human, id="1000").get(
             Human.name,
         )
     )
@@ -172,7 +173,7 @@ def test_fetch_luke_query():
             'name': 'Luke Skywalker',
         }
     }
-    result = gql.execute(query)
+    result = client.execute(query)
     assert result == expected
 
 
