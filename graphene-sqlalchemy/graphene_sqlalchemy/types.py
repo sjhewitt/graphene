@@ -4,7 +4,6 @@ from sqlalchemy.inspection import inspect as sqlalchemyinspect
 from sqlalchemy.orm.exc import NoResultFound
 
 from graphene import ObjectType, Field
-from graphene.relay import is_node
 from .converter import (convert_sqlalchemy_column,
                         convert_sqlalchemy_composite,
                         convert_sqlalchemy_relationship)
@@ -134,9 +133,3 @@ class SQLAlchemyObjectType(six.with_metaclass(SQLAlchemyObjectTypeMeta, ObjectTy
             return query.get(id)
         except NoResultFound:
             return None
-
-    def resolve_id(root, args, context, info):
-        graphene_type = info.parent_type.graphene_type
-        if is_node(graphene_type):
-            return root.__mapper__.primary_key_from_instance(root)[0]
-        return getattr(root, graphene_type._meta.id, None)
