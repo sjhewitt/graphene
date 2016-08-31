@@ -8,6 +8,9 @@ from ..types import ID, Field, Interface, ObjectType
 from ..types.interface import InterfaceMeta
 
 
+GLOBAL_ID_ATTR = '__id'
+
+
 def is_node(objecttype):
     '''
     Check if the given objecttype has Node as an interface
