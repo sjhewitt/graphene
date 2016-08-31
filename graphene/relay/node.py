@@ -55,7 +55,8 @@ class NodeMeta(InterfaceMeta):
 
     def __new__(cls, name, bases, attrs):
         cls = InterfaceMeta.__new__(cls, name, bases, attrs)
-        cls._meta.fields['id'] = GlobalID(cls, required=True, description='The ID of the object.')
+        cls._meta.fields[GLOBAL_ID_ATTR] = GlobalID(cls, name=GLOBAL_ID_ATTR, required=True,
+                                                    description='The ID of the object.')
         return cls
 
 
@@ -68,7 +69,7 @@ class NodeField(Field):
         super(NodeField, self).__init__(
             type,
             description='The ID of the object',
-            id=ID(required=True),
+            args={GLOBAL_ID_ATTR: ID(required=True).Argument()},
             resolver=node.node_resolver
         )
 
@@ -82,7 +83,7 @@ class Node(six.with_metaclass(NodeMeta, Interface)):
 
     @classmethod
     def node_resolver(cls, root, args, context, info):
-        return cls.get_node_from_global_id(args.get('id'), context, info)
+        return cls.get_node_from_global_id(args.get(GLOBAL_ID_ATTR), context, info)
 
     @classmethod
     def get_node_from_global_id(cls, global_id, context, info):
