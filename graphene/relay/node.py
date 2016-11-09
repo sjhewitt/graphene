@@ -69,7 +69,7 @@ class NodeField(Field):
         super(NodeField, self).__init__(
             type,
             description='The ID of the object',
-            args={GLOBAL_ID_ATTR: ID(required=True).Argument()},
+            args={GLOBAL_ID_ATTR: ID(required=True, name=GLOBAL_ID_ATTR).Argument()},
             resolver=node.node_resolver
         )
 
