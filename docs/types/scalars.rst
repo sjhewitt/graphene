@@ -1,7 +1,7 @@
 Scalars
 =======
 
-Graphene define the following base Scalar Types:
+Graphene defines the following base Scalar Types:
 
 - ``graphene.String``
 - ``graphene.Int``
@@ -24,8 +24,8 @@ The following is an example for creating a DateTime scalar:
 .. code:: python
 
     import datetime
-    from graphene.core.classtypes import Scalar
-    from graphql.core.language import ast
+    from graphene.types import Scalar
+    from graphql.language import ast
 
     class DateTime(Scalar):
         '''DateTime Scalar Description'''
@@ -47,8 +47,8 @@ The following is an example for creating a DateTime scalar:
 Mounting Scalars
 ----------------
 
-This scalars if are mounted in a ``ObjectType``, ``Interface`` or
-``Mutation``, would act as ``Field``\ s.
+If a scalar is mounted in an ``ObjectType``, ``Interface`` or
+``Mutation``, they act as ``Field``\ s:
 
 .. code:: python
 
@@ -57,14 +57,18 @@ This scalars if are mounted in a ``ObjectType``, ``Interface`` or
 
     # Is equivalent to:
     class Person(graphene.ObjectType):
-        name = graphene.Field(graphene.String())
+        name = graphene.Field(graphene.String)
 
 
-If the types are mounted in a ``Field``, would act as ``Argument``\ s.
+**Note:** when using the ``Field`` constructor directly, pass the type and
+not an instance.
+
+
+If the types are mounted in a ``Field``, they act as ``Argument``\ s:
 
 .. code:: python
 
-    graphene.Field(graphene.String(), to=graphene.String())
+    graphene.Field(graphene.String, to=graphene.String())
 
     # Is equivalent to:
-    graphene.Field(graphene.String(), to=graphene.Argument(graphene.String()))
+    graphene.Field(graphene.String, to=graphene.Argument(graphene.String()))
